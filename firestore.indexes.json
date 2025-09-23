@@ -1,0 +1,23 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "dishes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "sectionId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
