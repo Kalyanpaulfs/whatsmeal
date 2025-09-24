@@ -23,7 +23,7 @@ const Toast: React.FC<{ toast: ToastMessage }> = ({ toast }) => {
   };
 
   const getToastClasses = () => {
-    const baseClasses = "flex items-start p-4 rounded-lg shadow-lg border max-w-sm w-full";
+    const baseClasses = "flex items-start p-4 rounded-lg shadow-lg border w-full max-w-xs sm:max-w-sm";
     switch (toast.type) {
       case 'success':
         return `${baseClasses} bg-white border-l-4 border-l-green-500`;
@@ -40,9 +40,9 @@ const Toast: React.FC<{ toast: ToastMessage }> = ({ toast }) => {
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: 300, scale: 0.3 }}
-      animate={{ opacity: 1, x: 0, scale: 1 }}
-      exit={{ opacity: 0, x: 300, scale: 0.3 }}
+      initial={{ opacity: 0, x: 300, y: 20, scale: 0.3 }}
+      animate={{ opacity: 1, x: 0, y: 0, scale: 1 }}
+      exit={{ opacity: 0, x: 300, y: 20, scale: 0.3 }}
       transition={{ duration: 0.3, ease: "easeOut" }}
       className={getToastClasses()}
     >
@@ -75,7 +75,7 @@ const ToastContainer: React.FC = () => {
   const { toasts } = useToastStore();
 
   return (
-    <div className="fixed top-4 right-4 z-50 space-y-2">
+    <div className="fixed bottom-4 right-4 z-50 space-y-2 sm:bottom-4 sm:right-4 md:top-6 md:right-6 md:bottom-auto lg:top-8 lg:right-8 lg:bottom-auto">
       <AnimatePresence>
         {toasts.map((toast) => (
           <Toast key={toast.id} toast={toast} />

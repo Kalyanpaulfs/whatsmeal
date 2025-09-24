@@ -17,6 +17,7 @@ import { initializeSampleData } from '../../utils/initializeSampleData';
 import { cleanupDuplicateSections } from '../../utils/cleanupDuplicateSections';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
+import WhatsMealLogo from '../../assets/WhatsMeal_logo.png';
 import type { Dish, MenuSection, DishFormData, SectionFormData } from '../../types/menu';
 
 const MenuManagement: React.FC = () => {
@@ -732,17 +733,14 @@ const MenuManagement: React.FC = () => {
               >
                 {/* Dish Image */}
                 <div className="mb-3">
-                  {dish.image ? (
-                    <img
-                      src={dish.image}
-                      alt={dish.name}
-                      className="w-full h-32 object-cover rounded-lg"
-                    />
-                  ) : (
-                    <div className="w-full h-32 bg-gray-100 rounded-lg flex items-center justify-center">
-                      <span className="text-gray-400 text-sm">No Image</span>
-                    </div>
-                  )}
+                  <img
+                    src={dish.image || WhatsMealLogo}
+                    alt={dish.name}
+                    className="w-full h-32 object-cover rounded-lg"
+                    onError={(e) => {
+                      e.currentTarget.src = WhatsMealLogo;
+                    }}
+                  />
                 </div>
                 
                 <div className="flex items-start justify-between mb-3">

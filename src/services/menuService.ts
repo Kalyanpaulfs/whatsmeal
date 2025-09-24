@@ -14,6 +14,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { uploadImageToCloudinary, deleteImageFromCloudinary } from '../lib/cloudinary';
+import WhatsMealLogo from '../assets/WhatsMeal_logo.png';
 import type { MenuSection, Dish, DishFormData, SectionFormData } from '../types/menu';
 
 const SECTIONS_COLLECTION = 'menuSections';
@@ -161,20 +162,25 @@ export class MenuService {
       let imageUrl = '';
       let imagePublicId = '';
       
-      // Upload image to Cloudinary if provided
+      // Upload image to Cloudinary if provided, otherwise use default logo
       if (dishData.image) {
         console.log('MenuService: Uploading image to Cloudinary...');
         const uploadResult = await uploadImageToCloudinary(dishData.image);
         if (!uploadResult.success) {
-          console.warn('MenuService: Image upload failed, continuing without image:', uploadResult.error);
-          // Continue without image instead of throwing error
-          imageUrl = '';
+          console.warn('MenuService: Image upload failed, using default logo:', uploadResult.error);
+          // Use default logo when upload fails
+          imageUrl = WhatsMealLogo;
           imagePublicId = '';
         } else {
           imageUrl = uploadResult.url!;
           imagePublicId = uploadResult.publicId!;
           console.log('MenuService: Image uploaded successfully:', imageUrl);
         }
+      } else {
+        // No image provided, use default logo
+        console.log('MenuService: No image provided, using default WhatsMeal logo');
+        imageUrl = WhatsMealLogo;
+        imagePublicId = '';
       }
       
       // Get current max order for this section (simplified approach)
@@ -235,16 +241,25 @@ export class MenuService {
         // Upload new image
         const uploadResult = await uploadImageToCloudinary(dishData.image);
         if (!uploadResult.success) {
-          throw new Error(uploadResult.error || 'Image upload failed');
+          console.warn('MenuService: Image upload failed during update, using default logo:', uploadResult.error);
+          // Use default logo when upload fails
+          updateData.image = WhatsMealLogo;
+          updateData.imagePublicId = '';
+        } else {
+          updateData.image = uploadResult.url;
+          updateData.imagePublicId = uploadResult.publicId;
         }
-        
-        updateData.image = uploadResult.url;
-        updateData.imagePublicId = uploadResult.publicId;
-      }
-      
-      // Remove image field if no new image provided
-      if (!dishData.image) {
-        delete updateData.image;
+      } else {
+        // No new image provided, keep existing image or set default if none exists
+        const currentDish = await getDoc(dishRef);
+        if (currentDish.exists()) {
+          const currentData = currentDish.data() as Dish;
+          if (!currentData.image) {
+            // If current dish has no image, set default logo
+            updateData.image = WhatsMealLogo;
+            updateData.imagePublicId = '';
+          }
+        }
       }
       
       await updateDoc(dishRef, updateData);
