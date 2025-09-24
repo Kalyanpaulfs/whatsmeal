@@ -13,8 +13,7 @@ import {
   CreditCard, 
   Shield,
   Star,
-  Utensils,
-  Users
+  Utensils
 } from 'lucide-react';
 import { RESTAURANT_CONFIG, APP_CONFIG, DELIVERY_CONFIG } from '../../lib/config';
 
