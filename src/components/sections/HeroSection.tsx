@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { MapPin, Clock, ChefHat, ArrowRight, Sparkles, Star, Award } from 'lucide-react';
 import { useRestaurantStore } from '../../store/restaurantStore';
+import HeroImage1 from '../../assets/hero_1.png';
+import HeroImage2 from '../../assets/hero_2.png';
+import HeroImage3 from '../../assets/hero_3.png';
 
 interface HeroSectionProps {
   onExploreMenu?: () => void;
@@ -12,46 +15,71 @@ const HeroSection: React.FC<HeroSectionProps> = ({
   onViewSpecials = () => console.log('View Specials clicked')
 }) => {
   const [isVisible, setIsVisible] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const { status, deliveryAvailable } = useRestaurantStore();
+  
+  const heroImages = [HeroImage1, HeroImage2, HeroImage3];
   
   useEffect(() => {
     setIsVisible(true);
   }, []);
+
+  // Rotate background images every 5 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentImageIndex((prevIndex) => (prevIndex + 1) % heroImages.length);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [heroImages.length]);
 
   // Calculate top padding based on status banner visibility
   const hasStatusBanner = status !== 'open' || !deliveryAvailable;
   const topPadding = hasStatusBanner ? 'pt-28 sm:pt-32 md:pt-36' : 'pt-16 sm:pt-18 md:pt-20';
 
   return (
-    <section className={`relative min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-800 text-white flex items-center justify-center overflow-hidden ${topPadding}`}>
-      {/* Enhanced Background with Mobile-Optimized Pattern */}
+    <section className={`relative min-h-screen text-white flex items-center justify-center overflow-hidden ${topPadding}`}>
+      {/* Rotating Hero Background Images */}
       <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 via-pink-600/10 to-orange-600/10 animate-pulse"></div>
-        <div 
-          className="absolute inset-0 opacity-20"
-          style={{
-            backgroundImage: `radial-gradient(circle at 2px 2px, rgba(255,255,255,0.1) 1px, transparent 0)`,
-            backgroundSize: '30px 30px'
-          }}
-        ></div>
+        {heroImages.map((image, index) => (
+          <div
+            key={index}
+            className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
+              index === currentImageIndex ? 'opacity-100 hero-bg-transition' : 'opacity-0'
+            }`}
+            style={{
+              backgroundImage: `url(${image})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat'
+            }}
+          />
+        ))}
+        
+        {/* Dark overlay for better text readability */}
+        <div className="absolute inset-0 bg-black/40"></div>
+        
+        {/* Subtle gradient overlay for enhanced visual appeal */}
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-pink-900/20 to-orange-900/20"></div>
       </div>
 
-      {/* Mobile-Optimized Floating Elements */}
+      {/* Enhanced Floating Elements with Better Mobile Performance */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {/* Large floating orb - hidden on mobile for performance */}
-        <div className="hidden sm:block absolute top-1/4 left-4 sm:left-10 w-20 sm:w-32 h-20 sm:h-32 bg-gradient-to-r from-purple-400/20 to-pink-400/20 rounded-full blur-2xl sm:blur-3xl animate-pulse"></div>
+        <div className="hidden sm:block absolute top-1/4 left-4 sm:left-10 w-20 sm:w-32 h-20 sm:h-32 bg-gradient-to-r from-purple-400/15 to-pink-400/15 rounded-full blur-2xl sm:blur-3xl animate-pulse"></div>
         
         {/* Medium floating orb */}
-        <div className="absolute top-1/3 right-4 sm:right-20 w-16 sm:w-24 h-16 sm:h-24 bg-gradient-to-r from-orange-400/15 to-red-400/15 rounded-full blur-xl sm:blur-2xl" 
+        <div className="absolute top-1/3 right-4 sm:right-20 w-16 sm:w-24 h-16 sm:h-24 bg-gradient-to-r from-orange-400/10 to-red-400/10 rounded-full blur-xl sm:blur-2xl" 
              style={{ animation: 'float 8s ease-in-out infinite' }}></div>
         
         {/* Small floating orb */}
-        <div className="absolute bottom-1/4 left-1/4 w-12 sm:w-16 h-12 sm:h-16 bg-gradient-to-r from-blue-400/15 to-purple-400/15 rounded-full blur-lg sm:blur-xl"
+        <div className="absolute bottom-1/4 left-1/4 w-12 sm:w-16 h-12 sm:h-16 bg-gradient-to-r from-blue-400/10 to-purple-400/10 rounded-full blur-lg sm:blur-xl"
              style={{ animation: 'float 6s ease-in-out infinite reverse' }}></div>
 
-        {/* Mobile-friendly decorative elements */}
-        <div className="absolute top-1/2 right-1/4 w-3 sm:w-4 h-3 sm:h-4 bg-white/20 rounded-full animate-ping"></div>
-        <div className="absolute bottom-1/3 right-1/3 w-2 sm:w-3 h-2 sm:h-3 bg-purple-400/30 rounded-full animate-pulse"></div>
+        {/* Subtle sparkle effects */}
+        <div className="absolute top-1/2 right-1/4 w-2 sm:w-3 h-2 sm:h-3 bg-white/30 rounded-full animate-ping"></div>
+        <div className="absolute bottom-1/3 right-1/3 w-1.5 sm:w-2 h-1.5 sm:h-2 bg-purple-400/40 rounded-full animate-pulse"></div>
+        <div className="absolute top-1/5 left-1/3 w-1 sm:w-1.5 h-1 sm:h-1.5 bg-yellow-400/50 rounded-full animate-ping" style={{ animationDelay: '1s' }}></div>
       </div>
       
       <div className="container mx-auto px-3 sm:px-6 lg:px-8 max-w-7xl text-center relative z-10">
@@ -87,34 +115,40 @@ const HeroSection: React.FC<HeroSectionProps> = ({
         </p>
 
         {/* Mobile-First Feature Cards Grid */}
-        <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 max-w-4xl mx-auto mb-6 sm:mb-8 md:mb-12 px-2 transition-all duration-700 delay-600 ${
+        <div className={`flex flex-row sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 max-w-4xl mx-auto mb-6 sm:mb-8 md:mb-12 px-2 transition-all duration-700 delay-600 ${
           isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
         }`}>
           {/* Delivery Card - Mobile Optimized */}
-          <div className="group bg-white/10 backdrop-blur-lg rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 border border-white/20 hover:bg-white/15 hover:scale-105 hover:shadow-2xl transition-all duration-300">
-            <div className="flex items-center justify-center w-8 sm:w-10 md:w-12 h-8 sm:h-10 md:h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg sm:rounded-xl mb-2 sm:mb-3 md:mb-4 mx-auto group-hover:scale-110 transition-transform duration-300">
+          <div className="group flex flex-col items-center space-y-2 sm:space-y-3 p-2 sm:p-4 md:p-6 hover:scale-105 transition-all duration-300 flex-1">
+            <div className="flex items-center justify-center w-8 sm:w-10 md:w-12 h-8 sm:h-10 md:h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg sm:rounded-xl group-hover:scale-110 transition-transform duration-300">
               <MapPin className="w-4 sm:w-5 md:w-6 h-4 sm:h-5 md:h-6 text-white" />
             </div>
-            <h3 className="font-bold text-sm sm:text-base md:text-lg mb-1 sm:mb-2">3km Delivery</h3>
-            <p className="text-gray-300 text-xs sm:text-sm">Free delivery zone</p>
+            <div className="text-center">
+              <h3 className="font-bold text-xs sm:text-base md:text-lg mb-1 sm:mb-2">3km Delivery</h3>
+              <p className="text-gray-300 text-xs sm:text-sm">Free delivery zone</p>
+            </div>
           </div>
 
           {/* Time Card - Mobile Optimized */}
-          <div className="group bg-white/10 backdrop-blur-lg rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 border border-white/20 hover:bg-white/15 hover:scale-105 hover:shadow-2xl transition-all duration-300">
-            <div className="flex items-center justify-center w-8 sm:w-10 md:w-12 h-8 sm:h-10 md:h-12 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg sm:rounded-xl mb-2 sm:mb-3 md:mb-4 mx-auto group-hover:scale-110 transition-transform duration-300">
+          <div className="group flex flex-col items-center space-y-2 sm:space-y-3 p-2 sm:p-4 md:p-6 hover:scale-105 transition-all duration-300 flex-1">
+            <div className="flex items-center justify-center w-8 sm:w-10 md:w-12 h-8 sm:h-10 md:h-12 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg sm:rounded-xl group-hover:scale-110 transition-transform duration-300">
               <Clock className="w-4 sm:w-5 md:w-6 h-4 sm:h-5 md:h-6 text-white" />
             </div>
-            <h3 className="font-bold text-sm sm:text-base md:text-lg mb-1 sm:mb-2">30 Min Delivery</h3>
-            <p className="text-gray-300 text-xs sm:text-sm">Fast & reliable</p>
+            <div className="text-center">
+              <h3 className="font-bold text-xs sm:text-base md:text-lg mb-1 sm:mb-2">30 Min Delivery</h3>
+              <p className="text-gray-300 text-xs sm:text-sm">Fast & reliable</p>
+            </div>
           </div>
 
           {/* Quality Card - Mobile Optimized */}
-          <div className="group bg-white/10 backdrop-blur-lg rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 border border-white/20 hover:bg-white/15 hover:scale-105 hover:shadow-2xl transition-all duration-300 sm:col-span-2 lg:col-span-1">
-            <div className="flex items-center justify-center w-8 sm:w-10 md:w-12 h-8 sm:h-10 md:h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg sm:rounded-xl mb-2 sm:mb-3 md:mb-4 mx-auto group-hover:scale-110 transition-transform duration-300">
+          <div className="group flex flex-col items-center space-y-2 sm:space-y-3 p-2 sm:p-4 md:p-6 hover:scale-105 transition-all duration-300 flex-1 sm:col-span-2 lg:col-span-1">
+            <div className="flex items-center justify-center w-8 sm:w-10 md:w-12 h-8 sm:h-10 md:h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg sm:rounded-xl group-hover:scale-110 transition-transform duration-300">
               <ChefHat className="w-4 sm:w-5 md:w-6 h-4 sm:h-5 md:h-6 text-white" />
             </div>
-            <h3 className="font-bold text-sm sm:text-base md:text-lg mb-1 sm:mb-2">Fresh & Premium</h3>
-            <p className="text-gray-300 text-xs sm:text-sm">Quality ingredients</p>
+            <div className="text-center">
+              <h3 className="font-bold text-xs sm:text-base md:text-lg mb-1 sm:mb-2">Fresh & Premium</h3>
+              <p className="text-gray-300 text-xs sm:text-sm">Quality ingredients</p>
+            </div>
           </div>
         </div>
 
@@ -186,10 +220,32 @@ const HeroSection: React.FC<HeroSectionProps> = ({
           50% { transform: translateY(-15px) rotate(180deg); }
         }
         
+        @keyframes fadeInScale {
+          0% { 
+            opacity: 0; 
+            transform: scale(1.05); 
+          }
+          100% { 
+            opacity: 1; 
+            transform: scale(1); 
+          }
+        }
+        
+        .hero-bg-transition {
+          animation: fadeInScale 1s ease-in-out;
+        }
+        
         @media (max-width: 475px) {
           .xs\\:text-4xl {
             font-size: 2.25rem;
             line-height: 2.5rem;
+          }
+        }
+        
+        /* Optimize for mobile performance */
+        @media (max-width: 768px) {
+          .hero-bg-transition {
+            animation-duration: 0.8s;
           }
         }
       `}</style>

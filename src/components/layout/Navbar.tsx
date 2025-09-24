@@ -3,6 +3,7 @@ import { ShoppingCart, Menu, X, Clock, Star, Zap, Package, Search } from 'lucide
 import { useCart } from '../../hooks/useCart';
 import { useRestaurantStore } from '../../store/restaurantStore';
 import Badge from '../ui/Badge';
+import LogoImage from '../../assets/logo.png';
 
 interface NavbarProps {
   isScrolled: boolean;
@@ -51,8 +52,12 @@ const Navbar: React.FC<NavbarProps> = ({
           {/* Logo Section */}
           <div className="flex items-center space-x-3 min-w-0 flex-shrink-0">
             <div className="relative group">
-              <div className="w-10 h-10 bg-gradient-to-br from-purple-600 via-purple-700 to-pink-600 rounded-xl flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-                <span className="text-white font-bold text-xl">B</span>
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 overflow-hidden">
+                <img 
+                  src={LogoImage} 
+                  alt="Bella Vista Logo" 
+                  className="w-full h-full object-contain"
+                />
               </div>
             </div>
             <div className="min-w-0">

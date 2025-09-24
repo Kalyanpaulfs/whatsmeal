@@ -138,12 +138,8 @@ export const useOrderStore = create<OrderState>((set, get) => ({
         // Update customer orders in store
         get().loadCustomerOrders();
         
-        // Sync customer data (non-blocking)
-        try {
-          await syncCustomerFromOrder(createdOrder);
-        } catch (syncError) {
-          console.error('Error syncing customer from order (non-blocking):', syncError);
-        }
+        // Note: Customer sync will happen when order is marked as delivered
+        // This ensures only completed orders count towards customer stats and revenue
       }
       
       return orderId;
@@ -181,6 +177,21 @@ export const useOrderStore = create<OrderState>((set, get) => ({
       
       // Update customer orders in store
       get().loadCustomerOrders();
+      
+      // If order is delivered, sync customer data
+      if (statusUpdate.status === 'delivered') {
+        try {
+            const updatedOrder = get().orders.find((order: Order) => order.id === orderId);
+          if (updatedOrder) {
+            console.log('OrderStore: Order delivered, syncing customer data for order:', updatedOrder.id);
+            await syncCustomerFromOrder(updatedOrder);
+            console.log('OrderStore: Customer synced successfully after delivery');
+          }
+        } catch (syncError) {
+          console.error('OrderStore: Error syncing customer after delivery (non-blocking):', syncError);
+          // Don't throw error for customer sync failure - order status update should still succeed
+        }
+      }
     } catch (error) {
       console.error('Error updating order status:', error);
       set({ 

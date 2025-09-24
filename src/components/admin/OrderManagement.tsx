@@ -349,32 +349,6 @@ const OrderManagement: React.FC = () => {
     }
   };
 
-  const handleConfirmWhatsAppOrder = async (order: Order) => {
-    try {
-      await updateOrderStatus(order.id, { 
-        status: 'pending',
-        notes: 'Order confirmed after WhatsApp message received'
-      });
-      
-      // Show success toast
-      addToast({
-        type: 'success',
-        title: 'Order Confirmed!',
-        message: `Order ${order.orderCode} has been confirmed and is now pending preparation.`,
-        duration: 5000
-      });
-    } catch (error) {
-      console.error('Error confirming WhatsApp order:', error);
-      
-      // Show error toast
-      addToast({
-        type: 'error',
-        title: 'Confirmation Failed',
-        message: 'Failed to confirm order. Please try again.',
-        duration: 5000
-      });
-    }
-  };
 
   const handleDeleteOrder = (orderId: string) => {
     const order = orders.find(o => o.id === orderId);
@@ -681,7 +655,7 @@ const OrderManagement: React.FC = () => {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
           <input
             type="text"
-            placeholder="Search by order code, phone number, or customer name..."
+            placeholder="Search orders..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
@@ -900,131 +874,118 @@ const OrderManagement: React.FC = () => {
             <div className="divide-y divide-gray-200">
               {filteredOrders.map((order, index) => (
                 <div key={order.id || `order-${index}`} className="p-4 hover:bg-gray-50">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center space-x-2 mb-1">
-                        <h3 className="text-sm font-medium text-gray-900 truncate">
-                          {order.orderCode}
-                        </h3>
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
-                          {getStatusIcon(order.status)}
-                          <span className="ml-1">{formatOrderStatus(order.status)}</span>
-                        </span>
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {order.customerInfo.name}
-                      </div>
-                      <div className="text-xs text-gray-400 flex items-center mt-1">
-                        <Phone className="w-3 h-3 mr-1" />
-                        {order.customerInfo.phoneNumber}
+                  {/* Order Header - Order Code and Status */}
+                  <div className="mb-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        {order.orderCode}
+                      </h3>
+                      <div className="text-right">
+                        <div className="text-lg font-bold text-gray-900">
+                          ₹{order.total.toLocaleString()}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {formatOrderDate(order.createdAt)}
+                        </div>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-sm font-medium text-gray-900">
-                        ₹{order.total.toLocaleString()}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        {formatOrderDate(order.createdAt)}
-                      </div>
+                    
+                    {/* Status Badge - Full Width */}
+                    <div className="mb-2">
+                      <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium ${getStatusColor(order.status)}`}>
+                        {getStatusIcon(order.status)}
+                        <span className="ml-2">{formatOrderStatus(order.status)}</span>
+                      </span>
                     </div>
                   </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-1 text-xs text-gray-500">
-                      <span className="capitalize">{order.orderType}</span>
+
+                  {/* Customer Information */}
+                  <div className="mb-4">
+                    <div className="text-sm font-medium text-gray-900 mb-1">
+                      {order.customerInfo.name}
+                    </div>
+                    <div className="text-sm text-gray-500 flex items-center mb-1">
+                      <Phone className="w-3 h-3 mr-1.5" />
+                      {order.customerInfo.phoneNumber}
+                    </div>
+                    <div className="flex items-center space-x-2 text-xs text-gray-500">
+                      <span className="capitalize bg-gray-100 px-2 py-1 rounded">
+                        {order.orderType}
+                      </span>
                       {order.isVip && (
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                        <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
                           <Star className="w-3 h-3 mr-1" />
                           VIP
                         </span>
                       )}
                       {order.isBlocked && (
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                        <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-800">
                           <UserX className="w-3 h-3 mr-1" />
                           Blocked
                         </span>
                       )}
                     </div>
+                  </div>
+                  
+                  {/* Action Buttons - Mobile Optimized Grid */}
+                  <div className="grid grid-cols-2 gap-2">
+                    {/* Primary Actions */}
+                    <button
+                      onClick={() => {
+                        setSelectedOrder(order);
+                        setShowOrderDetails(true);
+                      }}
+                      className="flex items-center justify-center space-x-2 px-3 py-2.5 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-lg transition-colors duration-200 text-sm font-medium border border-blue-200"
+                    >
+                      <Eye className="w-4 h-4" />
+                      <span>View Details</span>
+                    </button>
                     
-                    {/* Action Buttons - Mobile Optimized */}
-                    <div className="flex flex-wrap items-center gap-2 mt-3">
-                      {/* Primary Actions Row */}
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => {
-                            setSelectedOrder(order);
-                            setShowOrderDetails(true);
-                          }}
-                          className="flex items-center space-x-1 px-3 py-2 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-lg transition-colors duration-200 text-sm font-medium"
-                          title="View Order Details"
-                        >
-                          <Eye className="w-4 h-4" />
-                          <span className="hidden sm:inline">View</span>
-                        </button>
-                        
-                        {/* Special button for pending_whatsapp orders */}
-                        {order.status === 'pending_whatsapp' ? (
-                          <button
-                            onClick={() => handleConfirmWhatsAppOrder(order)}
-                            className="flex items-center space-x-1 px-3 py-2 text-green-600 hover:text-green-900 hover:bg-green-50 rounded-lg transition-colors duration-200 text-sm font-medium"
-                            title="Confirm WhatsApp Order"
-                          >
-                            <CheckCircle className="w-4 h-4" />
-                            <span className="hidden sm:inline">Confirm</span>
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => {
-                              setSelectedOrder(order);
-                              setStatusUpdate({ status: order.status });
-                              setShowStatusModal(true);
-                            }}
-                            className="flex items-center space-x-1 px-3 py-2 text-green-600 hover:text-green-900 hover:bg-green-50 rounded-lg transition-colors duration-200 text-sm font-medium"
-                            title="Update Order Status"
-                          >
-                            <Edit className="w-4 h-4" />
-                            <span className="hidden sm:inline">Edit</span>
-                          </button>
-                        )}
-                      </div>
+                    <button
+                      onClick={() => {
+                        setSelectedOrder(order);
+                        setStatusUpdate({ status: order.status });
+                        setShowStatusModal(true);
+                      }}
+                      className="flex items-center justify-center space-x-2 px-3 py-2.5 text-green-600 hover:text-green-900 hover:bg-green-50 rounded-lg transition-colors duration-200 text-sm font-medium border border-green-200"
+                    >
+                      <Edit className="w-4 h-4" />
+                      <span>Update Status</span>
+                    </button>
+                    
+                    {/* Secondary Actions */}
+                    <button
+                      onClick={() => handleToggleVip(order)}
+                      className={`flex items-center justify-center space-x-2 px-3 py-2.5 rounded-lg transition-colors duration-200 text-sm font-medium border ${
+                        order.isVip 
+                          ? 'text-yellow-600 hover:text-yellow-900 hover:bg-yellow-50 border-yellow-200' 
+                          : 'text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 border-gray-200'
+                      }`}
+                    >
+                      <Star className="w-4 h-4" />
+                      <span>{order.isVip ? 'Remove VIP' : 'Mark VIP'}</span>
+                    </button>
+                    
+                    <div className="flex space-x-1">
+                      <button
+                        onClick={() => handleToggleBlocked(order)}
+                        className={`flex-1 flex items-center justify-center space-x-1 px-2 py-2.5 rounded-lg transition-colors duration-200 text-sm font-medium border ${
+                          order.isBlocked 
+                            ? 'text-red-600 hover:text-red-900 hover:bg-red-50 border-red-200' 
+                            : 'text-gray-400 hover:text-red-600 hover:bg-red-50 border-gray-200'
+                        }`}
+                      >
+                        <UserX className="w-4 h-4" />
+                        <span className="hidden sm:inline">{order.isBlocked ? 'Unblock' : 'Block'}</span>
+                      </button>
                       
-                      {/* Secondary Actions Row */}
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => handleToggleVip(order)}
-                          className={`flex items-center space-x-1 px-3 py-2 rounded-lg transition-colors duration-200 text-sm font-medium ${
-                            order.isVip 
-                              ? 'text-yellow-600 hover:text-yellow-900 hover:bg-yellow-50' 
-                              : 'text-gray-400 hover:text-yellow-600 hover:bg-yellow-50'
-                          }`}
-                          title={order.isVip ? 'Remove VIP Status' : 'Mark as VIP'}
-                        >
-                          <Star className="w-4 h-4" />
-                          <span className="hidden sm:inline">{order.isVip ? 'VIP' : 'Mark VIP'}</span>
-                        </button>
-                        
-                        <button
-                          onClick={() => handleToggleBlocked(order)}
-                          className={`flex items-center space-x-1 px-3 py-2 rounded-lg transition-colors duration-200 text-sm font-medium ${
-                            order.isBlocked 
-                              ? 'text-red-600 hover:text-red-900 hover:bg-red-50' 
-                              : 'text-gray-400 hover:text-red-600 hover:bg-red-50'
-                          }`}
-                          title={order.isBlocked ? 'Unblock Order' : 'Block Order'}
-                        >
-                          <UserX className="w-4 h-4" />
-                          <span className="hidden sm:inline">{order.isBlocked ? 'Unblock' : 'Block'}</span>
-                        </button>
-                        
-                        <button
-                          onClick={() => handleDeleteOrder(order.id)}
-                          className="flex items-center space-x-1 px-3 py-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors duration-200 text-sm font-medium"
-                          title="Delete Order"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          <span className="hidden sm:inline">Delete</span>
-                        </button>
-                      </div>
+                      <button
+                        onClick={() => handleDeleteOrder(order.id)}
+                        className="flex-1 flex items-center justify-center space-x-1 px-2 py-2.5 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors duration-200 text-sm font-medium border border-red-200"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        <span className="hidden sm:inline">Delete</span>
+                      </button>
                     </div>
                   </div>
                 </div>

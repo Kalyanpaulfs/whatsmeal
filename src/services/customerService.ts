@@ -25,9 +25,15 @@ const CUSTOMERS_COLLECTION = 'customers';
 const ORDERS_COLLECTION = 'orders';
 
 export class CustomerService {
-  // Create or update customer from order data
+  // Create or update customer from order data (only for delivered orders)
   static async syncCustomerFromOrder(order: Order): Promise<void> {
     try {
+      // Only sync customers from delivered orders
+      if (order.status !== 'delivered') {
+        console.log('CustomerService: Skipping customer sync - order is not delivered:', order.id, 'Status:', order.status);
+        return;
+      }
+      
       const customerData = {
         name: order.customerInfo.name,
         phoneNumber: order.customerInfo.phoneNumber,
@@ -39,17 +45,22 @@ export class CustomerService {
         createdAt: order.createdAt,
         lastOrderAt: order.createdAt,
         updatedAt: new Date().toISOString(),
+        // Note: Don't include 'id' field - Firebase will auto-generate the document ID
       };
 
       // Check if customer already exists
       const existingCustomer = await this.getCustomerByPhone(order.customerInfo.phoneNumber);
       
-      if (existingCustomer && existingCustomer.id) {
+      if (existingCustomer && existingCustomer.id && existingCustomer.id.trim() !== '') {
         // Update existing customer
         await this.updateCustomerFromOrder(existingCustomer.id, order);
       } else {
-        // Create new customer
-        await addDoc(collection(db, CUSTOMERS_COLLECTION), customerData);
+        // Create new customer - validate data first
+        if (customerData.phoneNumber && customerData.phoneNumber.trim() !== '' && customerData.name && customerData.name.trim() !== '') {
+          await addDoc(collection(db, CUSTOMERS_COLLECTION), customerData);
+        } else {
+          console.warn(`CustomerService: Skipping customer creation due to invalid data - phone: "${customerData.phoneNumber}", name: "${customerData.name}"`);
+        }
       }
     } catch (error) {
       console.error('CustomerService: Error syncing customer from order:', error);
@@ -57,9 +68,15 @@ export class CustomerService {
     }
   }
 
-  // Update existing customer with new order data
+  // Update existing customer with new order data (only for delivered orders)
   static async updateCustomerFromOrder(customerId: string, order: Order): Promise<void> {
     try {
+      // Only update customers from delivered orders
+      if (order.status !== 'delivered') {
+        console.log('CustomerService: Skipping customer update - order is not delivered:', order.id, 'Status:', order.status);
+        return;
+      }
+      
       // Validate customerId before creating document reference
       if (!customerId || customerId.trim() === '') {
         console.error('CustomerService: Invalid customerId provided:', customerId);
@@ -156,16 +173,32 @@ export class CustomerService {
         const q = query(collection(db, CUSTOMERS_COLLECTION));
         const querySnapshot = await getDocs(q);
         
+        const customerMap = new Map<string, Customer>();
+        
         querySnapshot.forEach((doc) => {
           const data = doc.data();
-          customers.push({
+          const customer = {
             id: doc.id,
             ...data,
             createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt,
             lastOrderAt: data.lastOrderAt?.toDate?.()?.toISOString() || data.lastOrderAt,
             updatedAt: data.updatedAt?.toDate?.()?.toISOString() || data.updatedAt,
-          } as Customer);
+          } as Customer;
+          
+          // Deduplicate by phone number - keep the most recent one
+          const phoneNumber = customer.phoneNumber;
+          if (phoneNumber && phoneNumber.trim() !== '') {
+            const existingCustomer = customerMap.get(phoneNumber);
+            if (!existingCustomer || new Date(customer.updatedAt || customer.createdAt) > new Date(existingCustomer.updatedAt || existingCustomer.createdAt)) {
+              customerMap.set(phoneNumber, customer);
+            }
+          } else {
+            // If no phone number, use document ID as key
+            customerMap.set(customer.id || `no-phone-${doc.id}`, customer);
+          }
         });
+        
+        customers = Array.from(customerMap.values());
       } else {
         // If we have VIP or Blocked filters, use separate queries
         const queries: Promise<any>[] = [];
@@ -196,11 +229,30 @@ export class CustomerService {
               lastOrderAt: data.lastOrderAt?.toDate?.()?.toISOString() || data.lastOrderAt,
               updatedAt: data.updatedAt?.toDate?.()?.toISOString() || data.updatedAt,
             } as Customer;
-            customerMap.set(doc.id, customer);
+            
+            // Deduplicate by phone number - keep the most recent one
+            const phoneNumber = customer.phoneNumber;
+            if (phoneNumber && phoneNumber.trim() !== '') {
+              const existingCustomer = customerMap.get(phoneNumber);
+              if (!existingCustomer || new Date(customer.updatedAt || customer.createdAt) > new Date(existingCustomer.updatedAt || existingCustomer.createdAt)) {
+                customerMap.set(phoneNumber, customer);
+              }
+            } else {
+              // If no phone number, use document ID as key
+              customerMap.set(customer.id || `no-phone-${doc.id}`, customer);
+            }
           });
         });
         
         customers = Array.from(customerMap.values());
+      }
+
+      // Debug logging
+      console.log(`CustomerService: Fetched ${customers.length} unique customers`);
+      const phoneNumbers = customers.map(c => c.phoneNumber).filter(p => p);
+      const duplicatePhones = phoneNumbers.filter((phone, index) => phoneNumbers.indexOf(phone) !== index);
+      if (duplicatePhones.length > 0) {
+        console.warn('CustomerService: Found duplicate phone numbers after deduplication:', duplicatePhones);
       }
 
       // Apply client-side filters
@@ -392,21 +444,40 @@ export class CustomerService {
     try {
       console.log('CustomerService: Starting customer sync from orders...');
       
-      // Get all orders
+      // IMPORTANT: Delete ALL existing customers first to start fresh
+      // This ensures we only have customers from delivered orders
+      console.log('CustomerService: Deleting all existing customers to start fresh...');
+      await this.deleteAllCustomers();
+      
+      // Get all orders first, then filter for delivered ones
+      // This avoids the composite index requirement temporarily
       const ordersQuery = query(collection(db, ORDERS_COLLECTION), orderBy('createdAt', 'asc'));
       const ordersSnapshot = await getDocs(ordersQuery);
       
-      const customersMap = new Map<string, { customer: Customer; orders: Order[] }>();
+      const customersMap = new Map<string, { customer: Omit<Customer, 'id'>; orders: Order[] }>();
+      let deliveredOrdersCount = 0;
       
-      // Group orders by phone number
+      // Group orders by phone number (only delivered orders)
       ordersSnapshot.forEach((doc) => {
         const orderData = doc.data() as Order;
+        
+        // Only process delivered orders
+        if (orderData.status !== 'delivered') {
+          return;
+        }
+        
+        deliveredOrdersCount++;
         const phoneNumber = orderData.customerInfo.phoneNumber;
         
+        if (!phoneNumber || phoneNumber.trim() === '') {
+          console.warn('CustomerService: Skipping order with invalid phone number:', orderData.orderCode);
+          return;
+        }
+        
         if (!customersMap.has(phoneNumber)) {
+          // Create new customer from scratch (no existing data)
           customersMap.set(phoneNumber, {
             customer: {
-              id: '', // Will be set when creating
               name: orderData.customerInfo.name,
               phoneNumber: orderData.customerInfo.phoneNumber,
               address: orderData.customerInfo.address || '',
@@ -425,9 +496,9 @@ export class CustomerService {
         const customerData = customersMap.get(phoneNumber)!;
         customerData.orders.push(orderData);
         
-        // Update customer data
-        customerData.customer.totalOrders += 1;
-        customerData.customer.totalSpent += orderData.total;
+        // Update customer data from scratch
+        customerData.customer.totalOrders = customerData.orders.length;
+        customerData.customer.totalSpent = customerData.orders.reduce((sum, order) => sum + order.total, 0);
         customerData.customer.lastOrderAt = orderData.createdAt;
         customerData.customer.isVIP = customerData.customer.isVIP || orderData.isVip;
         customerData.customer.isBlocked = customerData.customer.isBlocked || orderData.isBlocked;
@@ -436,34 +507,25 @@ export class CustomerService {
         }
       });
       
-      // Create/update customers in Firestore
+      // Create all customers in Firestore (since we deleted all existing ones)
+      let newCustomersCount = 0;
       for (const [phoneNumber, { customer }] of customersMap) {
-        const existingCustomer = await this.getCustomerByPhone(phoneNumber);
-        
-        if (existingCustomer && existingCustomer.id) {
-          // Validate customer ID before creating document reference
-          if (!existingCustomer.id || existingCustomer.id.trim() === '') {
-            console.error('CustomerService: Invalid customer ID found:', existingCustomer.id);
-            continue; // Skip this customer and continue with the next one
+        // Create new customer - validate data first
+        if (customer.phoneNumber && customer.phoneNumber.trim() !== '' && customer.name && customer.name.trim() !== '') {
+          try {
+            await addDoc(collection(db, CUSTOMERS_COLLECTION), customer);
+            newCustomersCount++;
+            console.log(`CustomerService: Created customer ${phoneNumber} with ${customer.totalOrders} orders, ${customer.totalSpent} spent`);
+          } catch (createError) {
+            console.error(`CustomerService: Failed to create customer ${phoneNumber}:`, createError);
+            // Continue with other customers even if one fails
           }
-          
-          // Update existing customer
-          await updateDoc(doc(db, CUSTOMERS_COLLECTION, existingCustomer.id), {
-            totalOrders: customer.totalOrders,
-            totalSpent: customer.totalSpent,
-            lastOrderAt: customer.lastOrderAt,
-            isVIP: customer.isVIP,
-            isBlocked: customer.isBlocked,
-            address: customer.address,
-            updatedAt: customer.updatedAt,
-          });
         } else {
-          // Create new customer
-          await addDoc(collection(db, CUSTOMERS_COLLECTION), customer);
+          console.warn(`CustomerService: Skipping customer creation due to invalid data - phone: "${customer.phoneNumber}", name: "${customer.name}"`);
         }
       }
       
-      console.log(`CustomerService: Synced ${customersMap.size} customers from orders`);
+      console.log(`CustomerService: Sync completed - ${newCustomersCount} customers created from ${deliveredOrdersCount} delivered orders`);
     } catch (error) {
       console.error('CustomerService: Error syncing all customers from orders:', error);
       throw error;
@@ -482,6 +544,130 @@ export class CustomerService {
       );
     } catch (error) {
       console.error('CustomerService: Error searching customers:', error);
+      throw error;
+    }
+  }
+
+
+  // Delete ALL customers from the database (for fresh start)
+  static async deleteAllCustomers(): Promise<void> {
+    try {
+      console.log('CustomerService: Starting deletion of ALL customers...');
+      
+      // Get all customers
+      const q = query(collection(db, CUSTOMERS_COLLECTION));
+      const querySnapshot = await getDocs(q);
+      
+      const customersToDelete: string[] = [];
+      
+      // Collect all customer document IDs
+      querySnapshot.forEach((doc) => {
+        customersToDelete.push(doc.id);
+      });
+      
+      console.log(`CustomerService: Found ${customersToDelete.length} customers to delete`);
+      
+      // Delete all customers
+      for (const customerId of customersToDelete) {
+        try {
+          await deleteDoc(doc(db, CUSTOMERS_COLLECTION, customerId));
+          console.log(`CustomerService: Deleted customer ${customerId}`);
+        } catch (deleteError) {
+          console.error(`CustomerService: Failed to delete customer ${customerId}:`, deleteError);
+          // Continue with other deletions even if one fails
+        }
+      }
+      
+      console.log(`CustomerService: All customers deletion completed. Deleted ${customersToDelete.length} customers.`);
+    } catch (error) {
+      console.error('CustomerService: Error deleting all customers:', error);
+      throw error;
+    }
+  }
+
+  // Clean up duplicate customers in the database
+  static async cleanupDuplicateCustomers(): Promise<void> {
+    try {
+      console.log('CustomerService: Starting cleanup of duplicate customers...');
+      
+      // Get all customers
+      const q = query(collection(db, CUSTOMERS_COLLECTION));
+      const querySnapshot = await getDocs(q);
+      
+      const phoneToCustomersMap = new Map<string, Customer[]>();
+      const customersToDelete: string[] = [];
+      
+      // Group customers by phone number
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        const customer = {
+          id: doc.id,
+          ...data,
+          createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt,
+          lastOrderAt: data.lastOrderAt?.toDate?.()?.toISOString() || data.lastOrderAt,
+          updatedAt: data.updatedAt?.toDate?.()?.toISOString() || data.updatedAt,
+        } as Customer;
+        
+        const phoneNumber = customer.phoneNumber;
+        if (phoneNumber && phoneNumber.trim() !== '') {
+          if (!phoneToCustomersMap.has(phoneNumber)) {
+            phoneToCustomersMap.set(phoneNumber, []);
+          }
+          phoneToCustomersMap.get(phoneNumber)!.push(customer);
+        } else {
+          // Handle customers without valid phone numbers - mark for deletion if they have invalid IDs
+          if (!customer.id || customer.id.trim() === '') {
+            console.warn(`CustomerService: Found customer with invalid ID and no phone number - marking for deletion: "${customer.name}"`);
+            customersToDelete.push(doc.id); // Use the document ID from Firestore
+          }
+        }
+      });
+      
+      // Find duplicates and mark older ones for deletion
+      for (const [phoneNumber, customers] of phoneToCustomersMap) {
+        if (customers.length > 1) {
+          console.log(`CustomerService: Found ${customers.length} customers with phone ${phoneNumber}`);
+          
+          // Sort by updatedAt (most recent first)
+          customers.sort((a, b) => {
+            const dateA = new Date(a.updatedAt || a.createdAt);
+            const dateB = new Date(b.updatedAt || b.createdAt);
+            return dateB.getTime() - dateA.getTime();
+          });
+          
+          // Keep the most recent one, mark others for deletion
+          const [keepCustomer, ...deleteCustomers] = customers;
+          console.log(`CustomerService: Keeping customer ${keepCustomer.id}, deleting ${deleteCustomers.length} duplicates`);
+          
+          deleteCustomers.forEach(customer => {
+            customersToDelete.push(customer.id);
+          });
+        }
+      }
+      
+      // Delete duplicate customers
+      for (const customerId of customersToDelete) {
+        // Validate customer ID before creating document reference
+        if (!customerId || customerId.trim() === '') {
+          console.warn(`CustomerService: Skipping deletion of customer with invalid ID: "${customerId}"`);
+          continue;
+        }
+        
+        try {
+          await deleteDoc(doc(db, CUSTOMERS_COLLECTION, customerId));
+          console.log(`CustomerService: Deleted duplicate/invalid customer ${customerId}`);
+        } catch (deleteError) {
+          console.error(`CustomerService: Failed to delete customer ${customerId}:`, deleteError);
+          // Continue with other deletions even if one fails
+        }
+      }
+      
+      console.log(`CustomerService: Cleanup completed. Deleted ${customersToDelete.length} duplicate/invalid customers.`);
+      if (customersToDelete.length === 0) {
+        console.log('CustomerService: No duplicate customers found - database is clean.');
+      }
+    } catch (error) {
+      console.error('CustomerService: Error cleaning up duplicate customers:', error);
       throw error;
     }
   }

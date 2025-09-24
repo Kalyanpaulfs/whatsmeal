@@ -41,15 +41,8 @@ export class OrderService {
       const docRef = await addDoc(collection(db, COLLECTION_NAME), orderWithTimestamps);
       console.log('OrderService: Order created with ID:', docRef.id);
       
-      // Sync customer data
-      try {
-        const createdOrder = { ...orderWithTimestamps, id: docRef.id } as Order;
-        await CustomerService.syncCustomerFromOrder(createdOrder);
-        console.log('OrderService: Customer synced successfully');
-      } catch (syncError) {
-        console.error('OrderService: Error syncing customer (non-blocking):', syncError);
-        // Don't throw error for customer sync failure - order creation should still succeed
-      }
+      // Note: Customer sync will happen when order is marked as delivered
+      // This ensures only completed orders count towards customer stats and revenue
       
       return docRef.id;
     } catch (error) {
@@ -211,6 +204,23 @@ export class OrderService {
       }
 
       await updateDoc(orderRef, updateData);
+      
+      // If order is marked as delivered, sync customer data
+      if (statusUpdate.status === 'delivered') {
+        try {
+          // Get the updated order data
+          const orderDoc = await getDoc(orderRef);
+          if (orderDoc.exists()) {
+            const orderData = { id: orderDoc.id, ...orderDoc.data() } as Order;
+            console.log('OrderService: Order delivered, syncing customer data for order:', orderData.id);
+            await CustomerService.syncCustomerFromOrder(orderData);
+            console.log('OrderService: Customer synced successfully after delivery');
+          }
+        } catch (syncError) {
+          console.error('OrderService: Error syncing customer after delivery (non-blocking):', syncError);
+          // Don't throw error for customer sync failure - order status update should still succeed
+        }
+      }
     } catch (error) {
       console.error('OrderService: Error updating order status:', error);
       throw error;

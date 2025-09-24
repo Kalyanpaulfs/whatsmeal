@@ -43,6 +43,22 @@ const CustomerManagement: React.FC = () => {
   
   const { addToast } = useToastStore();
 
+  // Helper function to generate unique keys for customers
+  const generateCustomerKey = (customer: Customer, index: number, prefix: string = 'customer'): string => {
+    // Try different combinations to ensure uniqueness
+    if (customer.id && customer.id.trim() !== '') {
+      return `${prefix}-${customer.id}`;
+    }
+    if (customer.phoneNumber && customer.phoneNumber.trim() !== '') {
+      return `${prefix}-${customer.phoneNumber}`;
+    }
+    if (customer.name && customer.name.trim() !== '') {
+      return `${prefix}-${customer.name.toLowerCase().replace(/\s+/g, '-')}-${index}`;
+    }
+    // Fallback to index with timestamp to ensure uniqueness
+    return `${prefix}-unknown-${index}-${Date.now()}`;
+  };
+
   const [filters, setFilters] = useState<CustomerFilters>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -141,17 +157,26 @@ const CustomerManagement: React.FC = () => {
   };
 
   const handleSyncCustomers = async () => {
+    if (isSyncing || isLoading) {
+      console.warn('Sync already in progress, skipping...');
+      return;
+    }
+    
     setIsSyncing(true);
     try {
+      console.log('CustomerManagement: Starting customer sync...');
       await syncAllCustomersFromOrders();
+      
       addToast({
         type: 'success',
         title: 'Sync Complete!',
         message: 'All customers have been synced from existing orders.',
         duration: 4000
       });
+      
+      console.log('CustomerManagement: Customer sync completed successfully');
     } catch (error) {
-      console.error('Error syncing customers:', error);
+      console.error('CustomerManagement: Error syncing customers:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       addToast({
         type: 'error',
@@ -163,6 +188,8 @@ const CustomerManagement: React.FC = () => {
       setIsSyncing(false);
     }
   };
+
+
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -207,10 +234,11 @@ const CustomerManagement: React.FC = () => {
           <Button
             variant="outline"
             onClick={handleSyncCustomers}
-            disabled={isSyncing}
-            leftIcon={isSyncing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+            disabled={isSyncing || isLoading}
+            leftIcon={isSyncing || isLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+
           >
-            {isSyncing ? 'Syncing...' : 'Sync from Orders'}
+            {isSyncing ? 'Syncing...' : isLoading ? 'Loading...' : 'Sync from Orders'}
           </Button>
           <button
             onClick={() => setShowFilters(!showFilters)}
@@ -287,7 +315,7 @@ const CustomerManagement: React.FC = () => {
             </h3>
             <div className="space-y-3">
               {insights.topCustomersBySpent.map((customer, index) => (
-                <div key={customer.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div key={generateCustomerKey(customer, index, 'top-spent')} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div className="flex items-center space-x-3">
                     <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
                       <span className="text-sm font-medium text-green-600">{index + 1}</span>
@@ -314,7 +342,7 @@ const CustomerManagement: React.FC = () => {
             </h3>
             <div className="space-y-3">
               {insights.topCustomersByOrders.map((customer, index) => (
-                <div key={customer.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div key={generateCustomerKey(customer, index, 'top-orders')} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div className="flex items-center space-x-3">
                     <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                       <span className="text-sm font-medium text-blue-600">{index + 1}</span>
@@ -451,7 +479,7 @@ const CustomerManagement: React.FC = () => {
                 </tr>
               ) : (
                 customers.map((customer, index) => (
-                  <tr key={customer.id || `customer-${index}`} className="hover:bg-gray-50">
+                  <tr key={generateCustomerKey(customer, index, 'customer')} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div>
@@ -563,7 +591,7 @@ const CustomerManagement: React.FC = () => {
           ) : (
             <div className="divide-y divide-gray-200">
               {customers.map((customer, index) => (
-                <div key={customer.id || `customer-${index}`} className="p-4 hover:bg-gray-50">
+                <div key={generateCustomerKey(customer, index, 'mobile-customer')} className="p-4 hover:bg-gray-50">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center space-x-2 mb-1">
@@ -764,3 +792,4 @@ const CustomerManagement: React.FC = () => {
 };
 
 export default CustomerManagement;
+

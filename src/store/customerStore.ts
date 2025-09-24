@@ -32,6 +32,7 @@ interface CustomerState {
   // Sync functions
   syncCustomerFromOrder: (order: any) => Promise<void>;
   syncAllCustomersFromOrders: () => Promise<void>;
+  deleteAllCustomers: () => Promise<void>;
   
   // Utility actions
   clearError: () => void;
@@ -52,7 +53,19 @@ export const useCustomerStore = create<CustomerState>((set, get) => ({
   fetchCustomers: async (filters) => {
     set({ isLoading: true, error: null });
     try {
+      console.log('CustomerStore: Fetching customers with filters:', filters);
       const customers = await CustomerService.getCustomers(filters);
+      console.log(`CustomerStore: Received ${customers.length} customers from service`);
+      
+      // Debug: Check for duplicate phone numbers
+      const phoneNumbers = customers.map(c => c.phoneNumber).filter(p => p);
+      const uniquePhones = new Set(phoneNumbers);
+      if (phoneNumbers.length !== uniquePhones.size) {
+        console.warn(`CustomerStore: Found ${phoneNumbers.length - uniquePhones.size} duplicate phone numbers in customers array`);
+        const duplicates = phoneNumbers.filter((phone, index) => phoneNumbers.indexOf(phone) !== index);
+        console.warn('CustomerStore: Duplicate phone numbers:', duplicates);
+      }
+      
       set({ customers, isLoading: false });
     } catch (error) {
       console.error('Error fetching customers:', error);
@@ -217,23 +230,64 @@ export const useCustomerStore = create<CustomerState>((set, get) => ({
 
   // Sync all customers from orders
   syncAllCustomersFromOrders: async () => {
+    const state = get();
+    if (state.isLoading) {
+      console.warn('Customer sync already in progress, skipping...');
+      return;
+    }
+    
     set({ isLoading: true, error: null });
     try {
+      console.log('CustomerStore: Starting sync all customers from orders...');
       await CustomerService.syncAllCustomersFromOrders();
+      
       // Refresh customers list and analytics
+      console.log('CustomerStore: Refreshing customer data after sync...');
       await Promise.all([
         get().fetchCustomers(),
         get().fetchAnalytics(),
         get().fetchInsights(),
         get().fetchStats()
       ]);
+      
+      console.log('CustomerStore: Customer sync completed successfully');
       set({ isLoading: false });
     } catch (error) {
-      console.error('Error syncing all customers from orders:', error);
+      console.error('CustomerStore: Error syncing all customers from orders:', error);
       set({ 
         error: error instanceof Error ? error.message : 'Failed to sync customers from orders',
         isLoading: false 
       });
+      throw error; // Re-throw so the component can handle it
+    }
+  },
+
+
+
+  // Delete all customers (for fresh start)
+  deleteAllCustomers: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      console.log('CustomerStore: Starting deletion of all customers...');
+      await CustomerService.deleteAllCustomers();
+      
+      // Clear local state
+      set({ 
+        customers: [], 
+        analytics: null, 
+        insights: null, 
+        stats: null,
+        isLoading: false 
+      });
+      
+      console.log('CustomerStore: All customers deleted successfully');
+    } catch (error) {
+      console.error('CustomerStore: Error deleting all customers:', error);
+      set({ 
+        error: error instanceof Error ? error.message : 'Failed to delete all customers',
+        isLoading: false 
+      });
+      throw error;
     }
   },
 
