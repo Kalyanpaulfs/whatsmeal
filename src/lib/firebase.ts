@@ -6,13 +6,13 @@ import { getFirestore } from "firebase/firestore";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyDtERI3htXHPEircAPwGs52giTdn3j0cys",
-  authDomain: "food-order-restaurant-3da72.firebaseapp.com",
-  projectId: "food-order-restaurant-3da72",
-  storageBucket: "food-order-restaurant-3da72.firebasestorage.app",
-  messagingSenderId: "732278276059",
-  appId: "1:732278276059:web:1d537f6cd1263f3c8871fe",
-  measurementId: "G-JXCHCLQN9D"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
 // Initialize Firebase

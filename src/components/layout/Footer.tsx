@@ -1,45 +1,61 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Phone, MapPin, Clock, Mail, Facebook, Instagram, Twitter } from 'lucide-react';
-import { RESTAURANT_CONFIG } from '../../lib/config';
+import { 
+  Phone, 
+  MapPin, 
+  Clock, 
+  Mail, 
+  Facebook, 
+  Instagram, 
+  Twitter, 
+  MessageCircle, 
+  Truck, 
+  CreditCard, 
+  Shield,
+  Star,
+  Utensils,
+  Users
+} from 'lucide-react';
+import { RESTAURANT_CONFIG, APP_CONFIG, DELIVERY_CONFIG } from '../../lib/config';
 
 const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
 
   const footerSections = [
     {
-      title: 'Contact Info',
+      title: 'Contact & Order',
       items: [
         { icon: <Phone className="w-4 h-4" />, text: RESTAURANT_CONFIG.phone },
-        { icon: <Mail className="w-4 h-4" />, text: 'info@bellavista.com' },
-        { icon: <MapPin className="w-4 h-4" />, text: RESTAURANT_CONFIG.address },
+        { icon: <MessageCircle className="w-4 h-4" />, text: 'WhatsApp Order', href: `https://wa.me/${RESTAURANT_CONFIG.whatsappNumber}?text=Hi! I want to place an order.` },
+        { icon: <Mail className="w-4 h-4" />, text: APP_CONFIG.supportEmail },
+        { icon: <MapPin className="w-4 h-4" />, text: RESTAURANT_CONFIG.location.city },
       ],
     },
     {
-      title: 'Opening Hours',
+      title: 'Operating Hours',
       items: [
         { icon: <Clock className="w-4 h-4" />, text: 'Mon - Sun: 7:00 AM - 11:00 PM' },
-        { icon: <Clock className="w-4 h-4" />, text: 'Breakfast: 7:00 AM - 11:00 AM' },
-        { icon: <Clock className="w-4 h-4" />, text: 'Lunch: 11:00 AM - 4:00 PM' },
-        { icon: <Clock className="w-4 h-4" />, text: 'Dinner: 4:00 PM - 11:00 PM' },
+        { icon: <Utensils className="w-4 h-4" />, text: 'Breakfast: 7:00 AM - 11:00 AM' },
+        { icon: <Utensils className="w-4 h-4" />, text: 'Lunch: 11:00 AM - 4:00 PM' },
+        { icon: <Utensils className="w-4 h-4" />, text: 'Dinner: 4:00 PM - 11:00 PM' },
       ],
     },
     {
-      title: 'Quick Links',
+      title: 'Order Information',
       items: [
-        { text: 'Menu', href: '#menu' },
-        { text: 'About Us', href: '#about' },
-        { text: 'Contact', href: '#contact' },
-        { text: 'Privacy Policy', href: '#privacy' },
-        { text: 'Terms of Service', href: '#terms' },
+        { icon: <Truck className="w-4 h-4" />, text: `Delivery: ${DELIVERY_CONFIG.estimatedDeliveryTime} min` },
+        { icon: <MapPin className="w-4 h-4" />, text: `Within ${DELIVERY_CONFIG.maxDeliveryRadius}km radius` },
+        { icon: <CreditCard className="w-4 h-4" />, text: `Min Order: ₹${RESTAURANT_CONFIG.minimumOrderAmount}` },
+        { icon: <Shield className="w-4 h-4" />, text: 'Secure Payments' },
       ],
     },
     {
-      title: 'Follow Us',
+      title: 'Connect With Us',
       items: [
-        { icon: <Facebook className="w-4 h-4" />, text: 'Facebook', href: '#' },
-        { icon: <Instagram className="w-4 h-4" />, text: 'Instagram', href: '#' },
-        { icon: <Twitter className="w-4 h-4" />, text: 'Twitter', href: '#' },
+        { icon: <Facebook className="w-4 h-4" />, text: 'Facebook', href: 'https://facebook.com/bellavista' },
+        { icon: <Instagram className="w-4 h-4" />, text: 'Instagram', href: 'https://instagram.com/bellavista' },
+        { icon: <Twitter className="w-4 h-4" />, text: 'Twitter', href: 'https://twitter.com/bellavista' },
+        { icon: <Star className="w-4 h-4" />, text: 'Rate Us', href: '#' },
       ],
     },
   ] as const;
@@ -80,34 +96,51 @@ const Footer: React.FC = () => {
           ))}
         </div>
 
-        {/* Delivery Info */}
+        {/* Order Features */}
         <motion.div
-          className="py-6 border-t border-secondary-800"
+          className="py-8 border-t border-secondary-800"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.4 }}
         >
-          <div className="flex flex-col md:flex-row items-center justify-between">
-            <div className="flex items-center space-x-6 mb-4 md:mb-0">
-              <div className="flex items-center space-x-2">
-                <MapPin className="w-5 h-5 text-primary-400" />
-                <span className="text-sm">
-                  Delivery within <span className="font-semibold text-primary-400">3km radius</span>
-                </span>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Delivery Info */}
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 bg-primary-500/20 rounded-lg flex items-center justify-center">
+                <Truck className="w-6 h-6 text-primary-400" />
               </div>
-              <div className="flex items-center space-x-2">
-                <Clock className="w-5 h-5 text-primary-400" />
-                <span className="text-sm">
-                  Estimated delivery: <span className="font-semibold text-primary-400">30 minutes</span>
-                </span>
+              <div>
+                <h4 className="font-semibold text-white">Fast Delivery</h4>
+                <p className="text-sm text-secondary-300">
+                  Within {DELIVERY_CONFIG.maxDeliveryRadius}km • {DELIVERY_CONFIG.estimatedDeliveryTime} min
+                </p>
               </div>
             </div>
-            
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-secondary-400">Minimum order:</span>
-              <span className="text-lg font-bold text-primary-400">
-                {RESTAURANT_CONFIG.minimumOrderAmount}
-              </span>
+
+            {/* WhatsApp Ordering */}
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 bg-green-500/20 rounded-lg flex items-center justify-center">
+                <MessageCircle className="w-6 h-6 text-green-400" />
+              </div>
+              <div>
+                <h4 className="font-semibold text-white">WhatsApp Order</h4>
+                <p className="text-sm text-secondary-300">
+                  Quick & Easy • Instant Confirmation
+                </p>
+              </div>
+            </div>
+
+            {/* Payment Security */}
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                <Shield className="w-6 h-6 text-blue-400" />
+              </div>
+              <div>
+                <h4 className="font-semibold text-white">Secure Payment</h4>
+                <p className="text-sm text-secondary-300">
+                  Safe & Encrypted • Multiple Options
+                </p>
+              </div>
             </div>
           </div>
         </motion.div>
@@ -120,19 +153,26 @@ const Footer: React.FC = () => {
           transition={{ duration: 0.5, delay: 0.5 }}
         >
           <div className="flex flex-col md:flex-row items-center justify-between">
-            <div className="flex items-center space-x-2 mb-4 md:mb-0">
-              <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">B</span>
+            <div className="flex items-center space-x-3 mb-4 md:mb-0">
+              <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg flex items-center justify-center shadow-lg">
+                <Utensils className="w-5 h-5 text-white" />
               </div>
               <div>
                 <p className="text-sm font-semibold">{RESTAURANT_CONFIG.name}</p>
-                <p className="text-xs text-secondary-400">Premium Dining Experience</p>
+                <p className="text-xs text-secondary-400">Fresh • Fast • Delicious</p>
               </div>
             </div>
             
-            <p className="text-sm text-secondary-400">
-              © {currentYear} {RESTAURANT_CONFIG.name}. All rights reserved.
-            </p>
+            <div className="flex flex-col md:flex-row items-center space-y-2 md:space-y-0 md:space-x-6">
+              <div className="flex items-center space-x-4 text-xs text-secondary-400">
+                <span>Minimum Order: ₹{RESTAURANT_CONFIG.minimumOrderAmount}</span>
+                <span>•</span>
+                <span>Delivery Fee: ₹{RESTAURANT_CONFIG.deliveryFee}</span>
+              </div>
+              <p className="text-sm text-secondary-400">
+                © {currentYear} {RESTAURANT_CONFIG.name}. All rights reserved.
+              </p>
+            </div>
           </div>
         </motion.div>
       </div>
