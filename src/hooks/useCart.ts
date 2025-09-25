@@ -28,13 +28,15 @@ export const useCart = () => {
   const addToCart = (dish: Dish, quantity = 1, specialInstructions = '') => {
     addItem(dish, quantity, specialInstructions);
     
-    // Show success toast
-    addToast({
-      type: 'success',
-      title: 'Added to Cart!',
-      message: `${dish.name} has been added to your cart.`,
-      duration: 3000
-    });
+    // Show success toast with a slight delay to allow animation to start
+    setTimeout(() => {
+      addToast({
+        type: 'success',
+        title: 'Added to Cart!',
+        message: `${dish.name} has been added to your cart.`,
+        duration: 3000
+      });
+    }, 500);
   };
 
   const removeFromCart = (dishId: string) => {

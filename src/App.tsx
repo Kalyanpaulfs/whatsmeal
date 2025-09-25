@@ -6,6 +6,7 @@ import TrackOrder from './components/customer/TrackOrder';
 import ToastContainer from './components/ui/Toast';
 import ProtectedRoute from './components/admin/ProtectedRoute';
 import AdminLogin from './components/admin/AdminLogin';
+import { AnimationProvider } from './contexts/AnimationContext';
 
 function App() {
   const navigate = useNavigate();
@@ -15,7 +16,7 @@ function App() {
   };
 
   return (
-    <>
+    <AnimationProvider>
       <Routes>
         <Route path="/" element={<CustomerApp />} />
         <Route path="/admin" element={<ProtectedRoute><AdminLogin /></ProtectedRoute>} />
@@ -24,7 +25,7 @@ function App() {
         <Route path="/track-order" element={<TrackOrder onBack={handleBackToHome} />} />
       </Routes>
       <ToastContainer />
-    </>
+    </AnimationProvider>
   );
 }
 

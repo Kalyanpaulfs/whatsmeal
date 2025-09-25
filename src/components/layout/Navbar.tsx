@@ -1,5 +1,6 @@
 import React from 'react';
 import { ShoppingCart, Menu, X, Clock, Star, Zap, Package, Search } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useCart } from '../../hooks/useCart';
 import { useRestaurantStore } from '../../store/restaurantStore';
 import Badge from '../ui/Badge';
@@ -30,12 +31,20 @@ const Navbar: React.FC<NavbarProps> = ({
     { id: 'beverages', name: 'Beverages', icon: Zap }
   ]
 }) => {
+  const navigate = useNavigate();
   const { totalItems, openCart } = useCart();
   const { status, deliveryAvailable } = useRestaurantStore();
   
   // Calculate top position based on status banner visibility
   const hasStatusBanner = status !== 'open' || !deliveryAvailable;
   const topPosition = hasStatusBanner ? 'top-14 sm:top-16 md:top-18' : 'top-0';
+
+  // Handle logo click to navigate to home
+  const handleLogoClick = () => {
+    navigate('/');
+    // Also scroll to top of page
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   return (
     <header 
@@ -50,7 +59,11 @@ const Navbar: React.FC<NavbarProps> = ({
         <div className="flex items-center justify-between h-16 sm:h-18 lg:h-20">
           
           {/* Logo Section */}
-          <div className="flex items-center space-x-3 min-w-0 flex-shrink-0">
+          <button 
+            onClick={handleLogoClick}
+            className="flex items-center space-x-3 min-w-0 flex-shrink-0 hover:opacity-90 transition-opacity duration-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50 rounded-lg p-1 -m-1"
+            aria-label="Go to home page"
+          >
             <div className="relative group">
               <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 overflow-hidden">
                 <img 
@@ -73,7 +86,7 @@ const Navbar: React.FC<NavbarProps> = ({
                 }`}>Premium Dining</span>
               </div>
             </div>
-          </div>
+          </button>
 
           {/* Desktop Navigation - Show only Chef's Special */}
           <nav className="hidden lg:flex items-center space-x-1">
@@ -124,6 +137,7 @@ const Navbar: React.FC<NavbarProps> = ({
 
             {/* Cart Button */}
             <button
+              data-cart-button
               onClick={openCart}
               className="relative p-2 text-purple-600 hover:text-white hover:bg-purple-600 rounded-lg transition-all duration-300 border border-purple-200 hover:border-purple-600"
             >

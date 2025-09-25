@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Minus, Heart, Clock, Leaf, Zap } from 'lucide-react';
 import type { Dish } from '../../types/menu';
 import { useCart } from '../../hooks/useCart';
 import { useRestaurantStore } from '../../store/restaurantStore';
+import { useAnimation } from '../../contexts/AnimationContext';
 import { validateOrder } from '../../utils/orderValidation';
 import { formatPrice, formatPreparationTime } from '../../utils/formatters';
 import Button from '../ui/Button';
@@ -26,17 +27,30 @@ const DishCard: React.FC<DishCardProps> = ({
   const [isLiked, setIsLiked] = useState(false);
   const { getItemQuantity, addToCart, changeQuantity, orderType } = useCart();
   const { status, deliveryAvailable } = useRestaurantStore();
+  const { triggerFlyingDishAnimation } = useAnimation();
+  const dishImageRef = useRef<HTMLDivElement>(null);
   
   const quantity = getItemQuantity(dish.id);
   const isInCart = quantity > 0;
   const orderStatus = validateOrder(orderType, status, deliveryAvailable);
 
   const handleAddToCart = () => {
-    if (onAddToCart) {
-      onAddToCart(dish, 1);
-    } else {
-      addToCart(dish, 1);
+    // Trigger flying animation before adding to cart
+    if (dishImageRef.current) {
+      const cartButton = document.querySelector('[data-cart-button]') as HTMLElement;
+      if (cartButton) {
+        triggerFlyingDishAnimation(dish, dishImageRef.current, cartButton);
+      }
     }
+
+    // Add to cart after a small delay to allow animation to start
+    setTimeout(() => {
+      if (onAddToCart) {
+        onAddToCart(dish, 1);
+      } else {
+        addToCart(dish, 1);
+      }
+    }, 50);
   };
 
   const handleQuantityChange = (newQuantity: number) => {
@@ -58,7 +72,7 @@ const DishCard: React.FC<DishCardProps> = ({
     >
       <div className="relative">
         {/* Image */}
-        <div className="relative h-48 overflow-hidden rounded-t-xl">
+        <div ref={dishImageRef} className="relative h-48 overflow-hidden rounded-t-xl">
           <img
             src={dish.image || WhatsMealLogo}
             alt={dish.name}

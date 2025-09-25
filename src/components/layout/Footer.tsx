@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { 
   Phone, 
   MapPin, 
@@ -18,7 +19,15 @@ import {
 import { RESTAURANT_CONFIG, APP_CONFIG, DELIVERY_CONFIG } from '../../lib/config';
 
 const Footer: React.FC = () => {
+  const navigate = useNavigate();
   const currentYear = new Date().getFullYear();
+
+  // Handle logo click to navigate to home
+  const handleLogoClick = () => {
+    navigate('/');
+    // Also scroll to top of page
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const footerSections = [
     {
@@ -152,7 +161,11 @@ const Footer: React.FC = () => {
           transition={{ duration: 0.5, delay: 0.5 }}
         >
           <div className="flex flex-col md:flex-row items-center justify-between">
-            <div className="flex items-center space-x-3 mb-4 md:mb-0">
+            <button 
+              onClick={handleLogoClick}
+              className="flex items-center space-x-3 mb-4 md:mb-0 hover:opacity-90 transition-opacity duration-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50 rounded-lg p-1 -m-1"
+              aria-label="Go to home page"
+            >
               <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg flex items-center justify-center shadow-lg">
                 <Utensils className="w-5 h-5 text-white" />
               </div>
@@ -160,7 +173,7 @@ const Footer: React.FC = () => {
                 <p className="text-sm font-semibold">{RESTAURANT_CONFIG.name}</p>
                 <p className="text-xs text-secondary-400">Fresh • Fast • Delicious</p>
               </div>
-            </div>
+            </button>
             
             <div className="flex flex-col md:flex-row items-center space-y-2 md:space-y-0 md:space-x-6">
               <div className="flex items-center space-x-4 text-xs text-secondary-400">
