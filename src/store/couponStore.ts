@@ -137,11 +137,15 @@ export const useCouponStore = create<CouponState>()((set, get) => ({
     return coupons.filter(coupon => {
       if (!coupon.isActive) return false;
       
-      // Fix timezone issues by creating dates at start/end of day in local timezone
+      // Check date validity
       const startDate = new Date(coupon.startDate + 'T00:00:00');
       const endDate = new Date(coupon.endDate + 'T23:59:59');
+      const isDateValid = startDate <= now && endDate >= now;
       
-      return startDate <= now && endDate >= now;
+      // Check usage limits
+      const hasUsageLeft = !coupon.usageLimit || coupon.usedCount < coupon.usageLimit;
+      
+      return isDateValid && hasUsageLeft;
     });
   },
 

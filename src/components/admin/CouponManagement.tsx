@@ -176,6 +176,12 @@ const CouponManagement: React.FC = () => {
     const startDate = new Date(coupon.startDate + 'T00:00:00');
     const endDate = new Date(coupon.endDate + 'T23:59:59');
     
+    // Check if coupon is active and within date range
+    const isDateValid = coupon.isActive && startDate <= now && endDate >= now;
+    
+    // Check if coupon has usage left (if it has a usage limit)
+    const hasUsageLeft = !coupon.usageLimit || coupon.usedCount < coupon.usageLimit;
+    
     // Debug logging
     console.log('Coupon validation debug:', {
       couponCode: coupon.code,
@@ -183,12 +189,15 @@ const CouponManagement: React.FC = () => {
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
       isActive: coupon.isActive,
+      usedCount: coupon.usedCount,
+      usageLimit: coupon.usageLimit,
       startValid: startDate <= now,
       endValid: endDate >= now,
-      finalValid: coupon.isActive && startDate <= now && endDate >= now
+      hasUsageLeft,
+      finalValid: isDateValid && hasUsageLeft
     });
     
-    return coupon.isActive && startDate <= now && endDate >= now;
+    return isDateValid && hasUsageLeft;
   };
 
   // Handle sample coupon initialization
@@ -458,7 +467,21 @@ const CouponManagement: React.FC = () => {
                   ? 'bg-green-100 text-green-800' 
                   : 'bg-red-100 text-red-800'
               }`}>
-                {isCouponValid(coupon) ? 'Valid' : 'Expired'}
+                {(() => {
+                  if (isCouponValid(coupon)) return 'Valid';
+                  
+                  // Check specific reason for expiration
+                  const now = new Date();
+                  const startDate = new Date(coupon.startDate + 'T00:00:00');
+                  const endDate = new Date(coupon.endDate + 'T23:59:59');
+                  const isDateValid = coupon.isActive && startDate <= now && endDate >= now;
+                  const hasUsageLeft = !coupon.usageLimit || coupon.usedCount < coupon.usageLimit;
+                  
+                  if (!coupon.isActive) return 'Inactive';
+                  if (!isDateValid) return 'Expired';
+                  if (!hasUsageLeft) return 'Limit Reached';
+                  return 'Invalid';
+                })()}
               </span>
             </div>
           </motion.div>

@@ -4,6 +4,7 @@ import type { CartItem, CartSummary } from '../types/cart';
 import type { Dish } from '../types/menu';
 import type { AppliedCoupon } from '../types/coupon';
 import type { DeliverySettings } from '../types/deliverySettings';
+import { useCouponStore } from './couponStore';
 
 interface CartStore {
   items: CartItem[];
@@ -190,6 +191,10 @@ export const useCartStore = create<CartStore>()(
 
       clearCart: () => {
         set({ items: [] });
+        // Also clear any applied coupon when cart is cleared
+        // This prevents coupon reuse after order placement
+        const { removeCoupon } = useCouponStore.getState();
+        removeCoupon();
       },
 
       toggleCart: () => {

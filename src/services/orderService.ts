@@ -21,6 +21,7 @@ import type {
   OrderAnalytics
 } from '../types/order';
 import { CustomerService } from './customerService';
+import { CouponService } from './couponService';
 
 const COLLECTION_NAME = 'orders';
 
@@ -40,6 +41,17 @@ export class OrderService {
       console.log('OrderService: Order with timestamps:', orderWithTimestamps);
       const docRef = await addDoc(collection(db, COLLECTION_NAME), orderWithTimestamps);
       console.log('OrderService: Order created with ID:', docRef.id);
+      
+      // Increment coupon usage count if a coupon was applied
+      if (orderData.appliedCoupon?.code) {
+        try {
+          await CouponService.incrementCouponUsage(orderData.appliedCoupon.code);
+          console.log('OrderService: Coupon usage count incremented for:', orderData.appliedCoupon.code);
+        } catch (error) {
+          console.error('OrderService: Error incrementing coupon usage:', error);
+          // Don't fail the order creation if coupon usage increment fails
+        }
+      }
       
       // Note: Customer sync will happen when order is marked as delivered
       // This ensures only completed orders count towards customer stats and revenue

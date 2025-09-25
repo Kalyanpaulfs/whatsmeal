@@ -34,7 +34,7 @@ const CartDrawer: React.FC = () => {
     getCartSummary,
   } = useCart();
   
-  const { appliedCoupon } = useCouponStore();
+  const { appliedCoupon, removeCoupon } = useCouponStore();
   
   const { status, deliveryAvailable } = useRestaurantStore();
   
@@ -436,6 +436,7 @@ const CartDrawer: React.FC = () => {
       // Clear cart and close drawer after showing modal
       setTimeout(() => {
         clearCart();
+        removeCoupon(); // Clear applied coupon to prevent reuse
         closeCart();
       }, 2000);
 

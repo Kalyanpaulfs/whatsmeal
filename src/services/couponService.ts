@@ -54,13 +54,18 @@ export class CouponService {
         ...doc.data()
       } as Coupon));
       
-      // Filter by date validity
+      // Filter by date validity and usage limits
       const now = new Date();
       return coupons.filter(coupon => {
-        // Fix timezone issues by creating dates at start/end of day in local timezone
+        // Check date validity
         const startDate = new Date(coupon.startDate + 'T00:00:00');
         const endDate = new Date(coupon.endDate + 'T23:59:59');
-        return startDate <= now && endDate >= now;
+        const isDateValid = startDate <= now && endDate >= now;
+        
+        // Check usage limits
+        const hasUsageLeft = !coupon.usageLimit || coupon.usedCount < coupon.usageLimit;
+        
+        return isDateValid && hasUsageLeft;
       });
     } catch (error) {
       console.error('Error fetching active coupons:', error);
@@ -187,6 +192,47 @@ export class CouponService {
   }
 
   // ===== COUPON VALIDATION =====
+  
+  // Increment coupon usage count
+  static async incrementCouponUsage(couponCode: string): Promise<void> {
+    try {
+      console.log('CouponService: Incrementing usage for coupon:', couponCode);
+      
+      // Get the coupon by code
+      const coupon = await this.getCouponByCode(couponCode);
+      if (!coupon) {
+        throw new Error(`Coupon with code "${couponCode}" not found`);
+      }
+      
+      const newUsedCount = coupon.usedCount + 1;
+      
+      // Check if coupon has reached its usage limit
+      const shouldExpire = coupon.usageLimit && newUsedCount >= coupon.usageLimit;
+      
+      // Update the usedCount and optionally expire the coupon
+      const couponRef = doc(db, COUPONS_COLLECTION, coupon.id);
+      const updateData: any = {
+        usedCount: newUsedCount,
+        updatedAt: serverTimestamp()
+      };
+      
+      // If usage limit is reached, automatically expire the coupon
+      if (shouldExpire) {
+        updateData.isActive = false;
+        console.log('CouponService: Coupon expired due to usage limit reached:', couponCode);
+      }
+      
+      await updateDoc(couponRef, updateData);
+      
+      console.log('CouponService: Usage count incremented for coupon:', couponCode, 'New count:', newUsedCount);
+      if (shouldExpire) {
+        console.log('CouponService: Coupon automatically expired and removed from customer offers');
+      }
+    } catch (error) {
+      console.error('CouponService: Error incrementing coupon usage:', error);
+      throw error;
+    }
+  }
   
   // Validate coupon
   static async validateCoupon(code: string, cartTotal: number): Promise<CouponValidationResult> {
